@@ -3,10 +3,11 @@ import prisma from '../config/database.js';
 import jwtService from '../services/jwtService.js';
 import otpService from '../services/otpService.js';
 import redisService from '../services/redisService.js';
+import eventPublisher from '../services/eventPublisher.js'; // ✅ ADD THIS
 import { SendOtpRequest, VerifyOtpRequest, AuthResponse } from '../types/index.js';
 
 export class AuthController {
-  // ✅ FIXED: Now accepts email parameter
+  // Send OTP to email
   async sendOTP(req: Request<{}, {}, SendOtpRequest>, res: Response): Promise<Response> {
     try {
       const { phone, email } = req.body;
@@ -25,7 +26,6 @@ export class AuthController {
         });
       }
 
-      // Pass both phone AND email to otpService
       const result = await otpService.sendOTP(phone, email);
       
       if (!result.success) {
@@ -42,6 +42,7 @@ export class AuthController {
     }
   }
 
+  // Verify OTP and authenticate user
   async verifyOTP(req: Request<{}, {}, VerifyOtpRequest>, res: Response): Promise<Response> {
     try {
       const { phone, otp } = req.body;
@@ -64,8 +65,10 @@ export class AuthController {
 
       // Find or create user
       let user = await prisma.user.findUnique({ where: { phone } });
+      let isNewUser = false; // ✅ ADD THIS
       
       if (!user) {
+        isNewUser = true; // ✅ ADD THIS
         user = await prisma.user.create({
           data: { 
             phone, 
@@ -74,6 +77,11 @@ export class AuthController {
           }
         });
         console.log(`✅ New user created: ${phone}`);
+      }
+
+      // ✅ PUBLISH EVENT IF NEW USER (ADD THIS)
+      if (isNewUser) {
+        await eventPublisher.publishUserCreated(user.id, user.phone);
       }
 
       // Update last login
@@ -123,6 +131,7 @@ export class AuthController {
     }
   }
 
+  // Get current user profile
   async getMe(req: Request, res: Response): Promise<Response> {
     try {
       const userId = (req as any).userId;
@@ -169,6 +178,7 @@ export class AuthController {
     }
   }
 
+  // Logout user
   async logout(req: Request, res: Response): Promise<Response> {
     try {
       const userId = (req as any).userId;

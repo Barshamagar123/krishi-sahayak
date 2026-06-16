@@ -7,6 +7,7 @@ import authController from './controllers/authController.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
 import { limiter } from './middleware/rateLimiter.js';
 import { validateSendOTP, validateVerifyOTP } from './middleware/validationMiddleware.js';
+import rabbitMQ from './services/rabbitmq.js'; // ✅ ADD THIS
 
 dotenv.config();
 
@@ -64,15 +65,43 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n${'='.repeat(50)}`);
-  console.log(`🔐 KRISHI SAHAYAK - AUTH SERVICE`);
-  console.log(`${'='.repeat(50)}`);
-  console.log(`✅ Server running on: http://localhost:${PORT}`);
-  console.log(`📋 Health check: http://localhost:${PORT}/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`${'='.repeat(50)}\n`);
+// ✅ START SERVER WITH RABBITMQ (REPLACE THE OLD app.listen)
+const startServer = async () => {
+  try {
+    // Connect to RabbitMQ
+    await rabbitMQ.connect();
+    
+    // Start Express server
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n${'='.repeat(50)}`);
+      console.log(`🔐 KRISHI SAHAYAK - AUTH SERVICE`);
+      console.log(`${'='.repeat(50)}`);
+      console.log(`✅ Server running on: http://localhost:${PORT}`);
+      console.log(`📋 Health check: http://localhost:${PORT}/health`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🐇 RabbitMQ connected`);
+      console.log(`${'='.repeat(50)}\n`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// ✅ CALL THE ASYNC START FUNCTION
+startServer();
+
+// ✅ GRACEFUL SHUTDOWN (ADD THIS)
+process.on('SIGTERM', async () => {
+  console.log('🔴 SIGTERM received, shutting down gracefully...');
+  await rabbitMQ.close();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('🔴 SIGINT received, shutting down gracefully...');
+  await rabbitMQ.close();
+  process.exit(0);
 });
 
 export default app;
