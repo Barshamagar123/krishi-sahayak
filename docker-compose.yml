@@ -1,0 +1,79 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: krishi-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: krishi_auth_db
+      MYSQL_USER: krishi_user
+      MYSQL_PASSWORD: krishi_pass123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+    networks:
+      - krishi-network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: krishi-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redis123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+    networks:
+      - krishi-network
+
+  auth-service:
+    build:
+      context: ./backend/auth-service
+      dockerfile: Dockerfile
+    container_name: krishi-auth-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=mysql://root:root123@mysql:3306/krishi_auth_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redis123
+      - JWT_SECRET=krishi-sahayak-secret-key-2024
+      - JWT_EXPIRES_IN=30d
+      # ✅ EMAIL CONFIGURATION ADDED HERE
+      - EMAIL_USER=magarbarsha14@gmail.com
+      - EMAIL_PASS=sdsbrxlfqldyjocs
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/auth-service/src:/app/src
+      - ./backend/auth-service/prisma:/app/prisma
+    networks:
+      - krishi-network
+
+networks:
+  krishi-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
