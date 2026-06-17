@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  phone        String    @unique
+  name         String?
+  nameNe       String?
+  province     String?
+  district     String?
+  municipality String?
+  language     String    @default("ne")
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  cropPreferences UserCropPreference[]
+}
+
+model Crop {
+  id              String    @id @default(cuid())
+  name_en         String    @unique
+  name_ne         String    @unique
+  description_en  String?
+  description_ne  String?
+  plantingSeason  String?
+  harvestSeason   String?
+  growingPeriod   Int?
+  imageUrl        String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  userPreferences UserCropPreference[]  // ✅ This needs a relation back
+}
+
+model UserCropPreference {
+  id         String   @id @default(cuid())
+  userId     String
+  cropId     String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  // ✅ ADD THESE RELATIONS
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crop       Crop     @relation(fields: [cropId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cropId])
+  @@index([userId])
+}
