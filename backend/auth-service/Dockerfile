@@ -1,22 +1,28 @@
+# Stage 1: Build
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+
+# ✅ Use default registry
+RUN npm install --registry=https://registry.npmjs.org
+
+COPY . .
+
+RUN npx prisma generate
+RUN npm run build
+
+# Stage 2: Production
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma
 
-# Install dependencies (using faster registry)
-RUN npm install --registry=https://registry.npmmirror.com
+EXPOSE 3002
 
-# Copy source code
-COPY . .
-
-# Generate Prisma client
-RUN npx prisma generate
-
-# Build TypeScript
-RUN npm run build
-
-EXPOSE 3001
-
-CMD ["npm", "run", "dev"]
+CMD ["node", "dist/index.js"]

@@ -3,7 +3,7 @@ import prisma from '../config/database.js';
 import jwtService from '../services/jwtService.js';
 import otpService from '../services/otpService.js';
 import redisService from '../services/redisService.js';
-import eventPublisher from '../services/eventPublisher.js'; // ✅ ADD THIS
+import eventPublisher from '../services/eventPublisher.js';
 import { SendOtpRequest, VerifyOtpRequest, AuthResponse } from '../types/index.js';
 
 export class AuthController {
@@ -65,21 +65,23 @@ export class AuthController {
 
       // Find or create user
       let user = await prisma.user.findUnique({ where: { phone } });
-      let isNewUser = false; // ✅ ADD THIS
+      let isNewUser = false;
       
       if (!user) {
-        isNewUser = true; // ✅ ADD THIS
+        isNewUser = true;
+        // ✅ ALWAYS create with role: 'user' - NEVER accept role from request!
         user = await prisma.user.create({
           data: { 
             phone, 
             language: 'ne',
-            isActive: true 
+            isActive: true,
+            role: 'user'  // ← FORCED! User cannot choose admin!
           }
         });
-        console.log(`✅ New user created: ${phone}`);
+        console.log(`✅ New user created: ${phone} (role: user)`);
       }
 
-      // ✅ PUBLISH EVENT IF NEW USER (ADD THIS)
+      // ✅ PUBLISH EVENT IF NEW USER
       if (isNewUser) {
         await eventPublisher.publishUserCreated(user.id, user.phone);
       }
@@ -90,10 +92,11 @@ export class AuthController {
         data: { lastLoginAt: new Date() }
       });
 
-      // Generate JWT token
+      // Generate JWT token with role included
       const token = jwtService.generateToken({ 
         userId: user.id, 
-        phone: user.phone 
+        phone: user.phone,
+        role: user.role  as 'user' | 'admin' // ✅ Include role in token!
       });
       
       // Store session in Redis
@@ -102,7 +105,7 @@ export class AuthController {
       // Clear used OTP
       await otpService.clearOTP(phone);
 
-      // Cast language to correct type
+      // ✅ Cast language to correct type
       const userLanguage = user.language as 'ne' | 'en';
       
       const response: AuthResponse = {
@@ -115,6 +118,7 @@ export class AuthController {
           name: user.name || undefined,
           nameNe: user.nameNe || undefined,
           language: userLanguage,
+          role: user.role as 'user' | 'admin',  // ✅ Include role in response!
           province: user.province || undefined,
           district: user.district || undefined,
           municipality: user.municipality || undefined
@@ -147,6 +151,7 @@ export class AuthController {
           district: true,
           municipality: true,
           language: true,
+          role: true,  // ✅ Include role
           isActive: true,
           createdAt: true,
           lastLoginAt: true

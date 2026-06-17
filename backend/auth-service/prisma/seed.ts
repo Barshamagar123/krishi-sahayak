@@ -3,26 +3,41 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('\n🌱 Seeding database...\n');
-  
-  const testUsers = [
-    { phone: "9800000000", name: "Ram Bahadur", nameNe: "राम बहादुर", province: "Bagmati", district: "Kathmandu" },
-    { phone: "9812345678", name: "Sita Devi", nameNe: "सीता देवी", province: "Lumbini", district: "Rupandehi" },
+  console.log('\n🌱 Seeding admin user...\n');
+
+  const adminUsers = [
+    {
+      phone: "9700742710",
+      name: "Admin User",
+      nameNe: "प्रशासक",
+      email: "admin@krishisahayak.com",  // ✅ Now works!
+      role: "admin",
+      province: "Bagmati",
+      district: "Kathmandu",
+      municipality: "Kathmandu-10",
+      isActive: true
+    }
   ];
 
-  for (const userData of testUsers) {
-    const user = await prisma.user.upsert({
-      where: { phone: userData.phone },
-      update: {},
-      create: { ...userData, language: 'ne', isActive: true }
+  for (const adminData of adminUsers) {
+    const admin = await prisma.user.upsert({
+      where: { phone: adminData.phone },
+      update: adminData,
+      create: adminData
     });
-    console.log(`✅ User: ${user.nameNe} (${user.phone})`);
+    console.log(`✅ Admin created: ${admin.name} (${admin.phone})`);
+    console.log(`   Email: ${admin.email}`);
+    console.log(`   Role: ${admin.role}`);
   }
 
   console.log('\n🎉 Seeding completed!\n');
-  console.log('📱 Test accounts:');
-  console.log('   1. Phone: 9800000000 (Ram Bahadur)');
-  console.log('   2. Phone: 9812345678 (Sita Devi)\n');
+  console.log('📋 Admin Login Credentials:');
+  console.log('─────────────────────────────────');
+  console.log('👑 Admin:');
+  console.log('   Phone: 9700742710');
+  console.log('   Email: admin@krishisahayak.com');
+  console.log('   Role: Admin');
+  console.log('─────────────────────────────────\n');
 }
 
 main()

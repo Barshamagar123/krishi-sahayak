@@ -37,7 +37,11 @@ model Crop {
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-
+  temperatureMin  Float?    // ✅ ADD THIS
+  temperatureMax  Float?    // ✅ ADD THIS
+  rainfallMin     Int?      // ✅ ADD THIS
+  rainfallMax     Int?      // ✅ ADD THIS
+  soilType        String?
   userPreferences UserCropPreference[]  // ✅ This needs a relation back
 }
 

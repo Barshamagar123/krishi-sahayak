@@ -1,4 +1,6 @@
 export type Language = 'ne' | 'en';
+export type UserRole = 'user' | 'admin';  // ✅ ADD THIS
+
 export interface User {
   id: string;
   phone: string;
@@ -7,7 +9,9 @@ export interface User {
   province?: string;
   district?: string;
   municipality?: string;
- language: Language;
+  language: Language;
+  role: UserRole;  // ✅ ADD THIS
+  isActive: boolean;  // ✅ ADD THIS
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -15,7 +19,7 @@ export interface User {
 
 export interface SendOtpRequest {
   phone: string;
-  email:string;
+  email: string;
 }
 
 export interface VerifyOtpRequest {
@@ -27,12 +31,31 @@ export interface AuthResponse {
   success: boolean;
   message: string;
   token?: string;
-  user?: Partial<User>;
+  user?: {
+    id: string;
+    phone: string;
+    name?: string;
+    nameNe?: string;
+    province?: string;
+    district?: string;
+    municipality?: string;
+    language: Language;
+    role?: UserRole;  // ✅ ADD THIS
+    isActive?: boolean;
+  };
 }
 
 export interface JWTPayload {
   userId: string;
   phone: string;
+  role?: UserRole;  // ✅ ADD THIS
   iat?: number;
   exp?: number;
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data?: T;
+  errors?: string[];
 }

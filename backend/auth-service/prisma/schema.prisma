@@ -26,9 +26,12 @@ language     Language  @default(ne)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  
+    role         String    @default("user")  // ✅ ADD THIS
+  email        String?   @unique   // ✅ ADD THIS
+
   sessions     Session[]
-  
+ 
+
   @@index([phone])
   @@index([district])
 }
